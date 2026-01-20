@@ -7,18 +7,26 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,84 +46,58 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            EjemploLazyColumnTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Lista_elementos(Modifier.padding(innerPadding))
-                }
+            MaterialTheme{
+                Scaffold(){ padding->LazyColumnActivoDemo(Modifier.padding(padding)) }
+
             }
         }
     }
 }
-data class Elemento(var indice:Int,var checkeado:Boolean)
 @Composable
-fun Lista_elementos(modificador: Modifier= Modifier)
-{
-    var lista_datos by remember { mutableStateOf(List(100){indice->Elemento(indice,indice==1)}) }
-    LazyColumn(modifier = modificador) {
+fun LazyColumnActivoDemo(modificador: Modifier=Modifier) {
+    // Estado de la LazyColumn
+    val listState = rememberLazyListState()
+    val listaDatos = remember { List(100) { "Elemento $it" } }
 
-   itemsIndexed(items=lista_datos){indice,elemento->
-       Row() {
-           //Se invoca tantas veces a Elemento_lista como elementos visibles
-           Elemento_lista(indice, elemento,{valor_check->
-               //Función para controlar el cambio en el check y que se visualice
-               //lista_datos al ser un state va a provocar repintado si cambia su valor(referencia)
-               //con lista_dato.map genero una nueva lista
-               lista_datos=lista_datos.map {
-                   if(it.indice==elemento.indice)
-                   {
-                       //Si el elemento de la lista que recorro (it.indice)
-                       //coincide con el elemento que estoy pintando(elemento.indice)
-                       //Genero un nuevo elemento(it.copy) con los mismos valores que el
-                       //elemento de la lista(it) pero con los parametros cambiados(checkeado=...)
+    // Estado para mostrar en pantalla el número de elementos activos
+    val visibleCount by remember {
+        //Solamente cuando cambia ese valor se recompone la UI
 
-                       it.copy(checkeado = valor_check)
-                   }
-                   else
-                       it
-               }
+        derivedStateOf { listState.layoutInfo.visibleItemsInfo.size }
+    }
 
-           }){
-               //Click en Borrar
-                //Una forma de borrar, creando otra lista
-                 lista_datos = lista_datos.filter { it.indice!=elemento.indice }
-                 //Otra forma de borrar el elemento clickado
-                 /*
-                lista_datos=lista_datos.toMutableList().apply {
-                    //La función apply recibe el objeto MutableList como parametro
-                    //y retorna un objeto MutableList
-                    remove(elemento)
-                }*/
+    Column(modifier = modificador.fillMaxSize()) {
+        // Mostramos el número de elementos activos
+        Text(
+            text = "Elementos activos en memoria: $visibleCount",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(16.dp)
+        )
 
-           }
+        Spacer(modifier = Modifier.height(8.dp))
 
-
-       }
-   }
-
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+            items(listaDatos) { item ->
+                ElementoFila(item)
+            }
+        }
     }
 }
 
 @Composable
-fun Elemento_lista(indice:Int,elemento: Elemento,cambio_check:(Boolean)->Unit,click_elemento:()->Unit)
-{
-    Log.i("INFO","Elemento lista $indice")
-
-
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)){
-        Spacer(Modifier.padding(start = 4.dp))
-        Text(text = "Indice Lazy:$indice", fontSize = 10.sp, modifier = Modifier.weight(1.5f))
-
-        Text(text="Elemento ${elemento.indice}", fontSize = 10.sp, modifier = Modifier.weight(1.5f))
-
-        //State hosting para el check del CheckBox
-        Checkbox(checked = elemento.checkeado, onCheckedChange = cambio_check, modifier = Modifier.weight(1f))
-
-        Button(onClick = click_elemento, modifier = Modifier.weight(2f)
-
-        ) {
-            Text("Borrar")
-        }
-
-
+fun ElementoFila(texto: String) {
+    // Log para ver cuándo se compone la fila
+    println("Componiendo $texto")
+    Log.i("INFO","Componiendo $texto")
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Text(
+            text = texto,
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }
