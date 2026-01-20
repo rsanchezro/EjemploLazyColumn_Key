@@ -29,7 +29,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ejemplolazycolumn.ui.theme.EjemploLazyColumnTheme
-import kotlinx.coroutines.channels.ticker
 import kotlin.collections.remove
 import androidx.compose.ui.graphics.Color
 
@@ -46,35 +45,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-data class Elemento(var indice:Int,var checkeado:Boolean)
+data class Elemento(var indice:Int)
 @Composable
 fun Lista_elementos(modificador: Modifier= Modifier)
 {
-    var lista_datos by remember { mutableStateOf(List(100){indice->Elemento(indice,indice==1)}) }
+    var lista_datos by remember { mutableStateOf(List(100){indice->Elemento(indice)}) }
     LazyColumn(modifier = modificador) {
-
-   itemsIndexed(items=lista_datos){indice,elemento->
+  //Al ponerle un key si borro un elemento no aparece el checked otra vez
+        //prueba a quitar el key, comprobarás que al eliminar el elemento queda checkeado
+   itemsIndexed(items=lista_datos, key = {ind,elemento->elemento.indice}){indice,elemento->
        Row() {
            //Se invoca tantas veces a Elemento_lista como elementos visibles
-           Elemento_lista(indice, elemento,{valor_check->
-               //Función para controlar el cambio en el check y que se visualice
-               //lista_datos al ser un state va a provocar repintado si cambia su valor(referencia)
-               //con lista_dato.map genero una nueva lista
-               lista_datos=lista_datos.map {
-                   if(it.indice==elemento.indice)
-                   {
-                       //Si el elemento de la lista que recorro (it.indice)
-                       //coincide con el elemento que estoy pintando(elemento.indice)
-                       //Genero un nuevo elemento(it.copy) con los mismos valores que el
-                       //elemento de la lista(it) pero con los parametros cambiados(checkeado=...)
-
-                       it.copy(checkeado = valor_check)
-                   }
-                   else
-                       it
-               }
-
-           }){
+           Elemento_lista(indice, elemento){
                //Click en Borrar
                 //Una forma de borrar, creando otra lista
                  lista_datos = lista_datos.filter { it.indice!=elemento.indice }
@@ -95,20 +77,28 @@ fun Lista_elementos(modificador: Modifier= Modifier)
     }
 }
 
+/*
+Esta función se ejecuta solamente para los elementos visibles,
+se creara una variable chequeado por cada elemento visible
+si hacemos scroll se destruye ese elemento y se crea uno nuevo con lo que se inicia a false
+
+ */
 @Composable
-fun Elemento_lista(indice:Int,elemento: Elemento,cambio_check:(Boolean)->Unit,click_elemento:()->Unit)
+fun Elemento_lista(indice:Int,elemento: Elemento,click_elemento:()->Unit)
 {
     Log.i("INFO","Elemento lista $indice")
 
-
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)){
+    var chequeado by remember { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 8.dp, vertical = 4.dp)){
         Spacer(Modifier.padding(start = 4.dp))
         Text(text = "Indice Lazy:$indice", fontSize = 10.sp, modifier = Modifier.weight(1.5f))
 
         Text(text="Elemento ${elemento.indice}", fontSize = 10.sp, modifier = Modifier.weight(1.5f))
 
-        //State hosting para el check del CheckBox
-        Checkbox(checked = elemento.checkeado, onCheckedChange = cambio_check, modifier = Modifier.weight(1f))
+
+        Checkbox(checked = chequeado, onCheckedChange = { chequeado=it }, modifier = Modifier.weight(1f))
 
         Button(onClick = click_elemento, modifier = Modifier.weight(2f)
 
